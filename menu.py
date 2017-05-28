@@ -14,21 +14,22 @@ class Menu:
         set_caption('BomberMan')
         set_icon(load('Resources\images\icon.png'))
         self.screen = set_mode((1024, 768))
-        self.load_images(Color('#115111'))
+        self.bg_color = Color('#153515')
+        self.load_images()
         self.btns = [(60, 522, 135, 572), (60, 575, 280, 625), (60, 627, 270, 677), (60, 678, 135, 728)]
         self.checked_btn = 0
         self.reload()
         self.cycle()
 
-    def load_images(self, bg_color):
+    def load_images(self):
         self.logo = load('Resources\images\logo.png')
         self.bg = Surface((1024, 768))
-        self.bg.fill(bg_color)
+        self.bg.fill(self.bg_color)
         self.menu = load('Resources\images\menu.bmp')
         self.menu.set_colorkey((81, 81, 81))
         self.man = load('Resources\images\man.png')
         self.submenu = Surface((50, 195))
-        self.submenu.fill(bg_color)
+        self.submenu.fill(self.bg_color)
         self.bomb = load('Resources\images\\bomb.png')
         self.explosion = load('Resources\images\Explosion.png')
         self.back = load('Resources\images\Back.bmp')
@@ -90,7 +91,7 @@ class Menu:
         if idx != 3:
             delay(200)
         if idx == 0:
-            Play(self.screen)
+            Play(self.screen, self.bg_color)
         elif idx == 1:
             self.instructions()
         elif idx == 2:
