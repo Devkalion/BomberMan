@@ -16,34 +16,37 @@ class Menu:
         self.screen = set_mode((1024, 768))
         self.bg_color = Color('#153515')
         self.load_images()
-        self.btns = [(60, 522, 135, 572), (60, 575, 280, 625), (60, 627, 270, 677), (60, 678, 135, 728)]
+        self.btns = [(70, 490, 182, 552), (70, 555, 334, 602), (70, 620, 351, 681), (70, 685, 168, 733)]
         self.checked_btn = 0
         self.reload()
         self.cycle()
 
     def load_images(self):
         self.logo = load('Resources\images\logo.png')
-        self.menu = load('Resources\images\menu.bmp')
-        self.menu.set_colorkey((81, 81, 81))
+        self.play = load('Resources\images\Buttons\Play.png')
+        self.instructions_btn = load('Resources\images\Buttons\Instructions.png')
+        self.highscores = load('Resources\images\Buttons\High Scores.png')
+        self.exit = load('Resources\images\Buttons\Exit.png')
         self.man = load('Resources\images\man.png')
-        self.submenu = Surface((50, 195))
+        self.submenu = Surface((50, 236))
         self.submenu.fill(self.bg_color)
-        self.bomb = load('Resources\images\\bomb.png')
         self.explosion = load('Resources\images\Explosion.png')
-        self.back = load('Resources\images\Back.bmp')
-        self.back.set_colorkey((81, 81, 81))
+        self.bomb = load('Resources\images\\bomb.png')
+        self.back = load('Resources\images\Buttons\Back.png')
         self.img1 = load('Resources\images\img1.png')
 
     def read_scores(self):
         f = open('Resources\Scores.txt', 'a+')
         f.seek(0)
         self.tabl = [(s.split('~')[0], int(s.split('~')[1])) for s in f.readlines()]
-        #self.tabl = sorted([(s.split('~')[0], int(s.split('~')[1])) for s in f.readlines()], key=lambda x: -x[1])
         f.close()
 
     def reload(self):
         self.screen.fill(Color('#153515'))
-        self.screen.blit(self.menu, (0, 520))
+        self.screen.blit(self.play, (70, 490))
+        self.screen.blit(self.instructions_btn, (70, 555))
+        self.screen.blit(self.highscores, (70, 620))
+        self.screen.blit(self.exit, (70, 685))
         self.screen.blit(self.logo, (30, 0))
         self.screen.blit(self.man, (540, 167))
         self.screen.blit(self.bomb, (20, self.btns[self.checked_btn][1] + 2))
@@ -79,7 +82,7 @@ class Menu:
                             break
 
     def focus_changed(self, btn):
-        self.screen.blit(self.submenu, (20, 524))
+        self.screen.blit(self.submenu, (20, 490))
         self.screen.blit(self.bomb, (20, btn[1] + 2))
         update()
 
@@ -117,58 +120,45 @@ class Menu:
         i = self.tabl.index(('_', score))
         self.print_scores()
         s = ''
-        ok = True
         filled = False
         ex = False
-        while ok:
+        while not filled:
             for event in get():
                 if event.type == KEYDOWN:
                     if event.key == K_ESCAPE:
-                        if filled:
-                            ok = False
+                        filled = True
+                        self.tabl[i] = (s, self.tabl[i][1])
+                        break
+                    elif (event.key == 32 or 'a' <= chr(event.key) <= 'z') and len(s) < 8:
+                        s1 = chr(event.key)
+                        s += s1
+                        if len(s) == 8:
+                            s1 = s
                         else:
-                            filled = True
-                            self.tabl[i] = (s, self.tabl[i][1])
-                            self.print_scores()
-                    elif not filled:
-                        if (event.key == 32 or 'a' <= chr(event.key) <= 'z') and len(s) < 8:
-                            s1 = chr(event.key)
-                            s += s1
-                            if len(s) == 8:
-                                s1 = s
-                            else:
-                                s1 = s + '_'
-                            self.tabl[i] = (s1, self.tabl[i][1])
-                            self.print_scores()
-                        elif event.key == 8:
-                            s = s[0:len(s) - 1]
-                            self.tabl[i] = (s + '_', self.tabl[i][1])
-                            self.print_scores()
-                        elif event.key == 13:
-                            filled = True
-                            self.tabl[i] = (s, self.tabl[i][1])
-                            self.print_scores()
+                            s1 = s + '_'
+                        self.tabl[i] = (s1, self.tabl[i][1])
+                        self.print_scores()
+                    elif event.key == 8:
+                        s = s[0:len(s) - 1]
+                        self.tabl[i] = (s + '_', self.tabl[i][1])
+                        self.print_scores()
+                    elif event.key == 13:
+                        filled = True
+                        self.tabl[i] = (s, self.tabl[i][1])
                 elif event.type == MOUSEBUTTONDOWN and event.button == 1:
                     filled = True
                     self.tabl[i] = (s, self.tabl[i][1])
-                    self.print_scores()
-                    [x, y] = event.pos
-                    if 30 <= x <= 146 and 700 <= y <= 746:
-                        ok = False
                 elif event.type == QUIT:
                     ex = True
-                    if not filled:
-                        filled = True
-                        self.tabl[i] = (s, self.tabl[i][1])
-                        self.print_scores()
-                    ok = True
+                    filled = True
+                    self.tabl[i] = (s, self.tabl[i][1])
         f = open('Resources\Scores.txt', 'w')
         for k in self.tabl:
             f.write('%s~%d\n' % k)
         f.close()
         if ex:
             exit()
-
+        self.scores()
 
     def print_scores(self):
         self.screen.fill(Color('#153515'))
@@ -193,7 +183,7 @@ class Menu:
                     ok = False
                 elif event.type == MOUSEBUTTONDOWN and event.button == 1:
                     [x, y] = event.pos
-                    if 30 <= x <= 146 and 700 <= y <= 746:
+                    if 50 <= x <= 168 and 690 <= y <= 739:
                         ok = False
                 elif event.type == QUIT:
                     exit()
