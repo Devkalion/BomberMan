@@ -1,4 +1,3 @@
-#from pygame import display, Rect
 from pygame.sprite import Sprite, collide_rect, Group, spritecollideany
 from pygame.time import get_ticks
 from pygame.image import load
@@ -6,23 +5,41 @@ from random import randint
 
 
 class Sprites(Sprite):
-    def __init__(self, screen, file_name, x, y, l, can=True):
+    def __init__(self, file_name, x, y, l, can=True):
         Sprite.__init__(self)
         self.can = can
         self.image = load('Resources\images\Sprites\\' + file_name)
-        self.screen = screen
         self.rect = self.image.get_rect()
         self.rect.x += x
         self.l = l
         self.rect.y += y
 
-    def update(self):
-        self.screen.blit(self.image, (self.rect.x - self.l[0], self.rect.y - self.l[1]))
+    def update(self, screen):
+        screen.blit(self.image, (self.rect.x - self.l[0], self.rect.y - self.l[1]))
+
+
+class Bomb(Sprites):
+    def __init__(self, x, y, strength, l):
+        Sprites.__init__(self, 'Player\\bomb.png', x, y, l)
+        self.explosion_time = get_ticks() + 1500
+        self.strength = strength
+
+
+class Explosion(Sprites):
+    def __init__(self, x, y, time, l):
+        Sprites.__init__(self, 'Player\\explosion.png', x, y, l)
+        self.clear_time = time + 800
+
+
+class Bonus(Sprites):
+    def __init__(self, x, y, type, l):
+        Sprites.__init__(self, 'Player\\bonus' + str(type) + '.png', x, y, l)
+        self.type = type
 
 
 class Mobs(Sprites):
-    def __init__(self, screen, file_name, x, y, speed=1, dir=0, l=None):
-        Sprites.__init__(self, screen, file_name + '_down.png', x, y, l)
+    def __init__(self, file_name, x, y, speed=1, dir=0, l=None):
+        Sprites.__init__(self, file_name + '_down.png', x, y, l)
         self.ismoved = False
         self.speed = speed
         self.dir = dir
@@ -43,14 +60,14 @@ class Mobs(Sprites):
         self.image = self.imgs[self.dir]
 
     def strategy(self):
-        if not randint(0, 250):
+        if not randint(0, 125):
             self.rotate(randint(0, 3))
         if not randint(0, 1):
             self.ismoved = True
             return
         self.ismoved = False
 
-    def update(self, sprites):
+    def update(self, screen, sprites=Group()):
         if self.ismoved:
             (dx, dy) = self.dirs[self.dir]
             if dx != 0:
@@ -62,7 +79,7 @@ class Mobs(Sprites):
                 self.rect.y += self.y
                 self.y %= 1
             self.collide(sprites)
-        Sprites.update(self)
+        Sprites.update(self, screen)
 
     def collide(self, sprites):
         ans = False
@@ -81,8 +98,8 @@ class Mobs(Sprites):
 
 
 class Player(Mobs):
-    def __init__(self, screen, x, y, max_bombs, strength, l, width, height):
-        Mobs.__init__(self, screen, 'Player\p', x, y, 1.5, 0, l)
+    def __init__(self, x, y, max_bombs, strength, l, width, height):
+        Mobs.__init__(self, 'Player\p', x, y, 1.5, 0, l)
         self.width = width
         self.height = height
         self.max_bombs = max_bombs
@@ -92,7 +109,7 @@ class Player(Mobs):
         self.bombs_on_ground = set()
         self.pr_tick = get_ticks()
 
-    def place_bomb(self):
+    def place_bomb(self, group):
         time = get_ticks()
         if len(self.bombs_on_ground) < self.max_bombs:
             if self.pr_tick + 150 < time:
@@ -103,10 +120,12 @@ class Player(Mobs):
                 k = len(self.bombs_on_ground)
                 self.bombs_on_ground.add((x, y))
                 if k != len(self.bombs_on_ground):
-                    self.bombs.add(Bomb(self.screen, x, y, self.strength, self.l))
+                    b = Bomb(x, y, self.strength, self.l)
+                    self.bombs.add(b)
+                    group.add(b)
 
-    def update(self, sprites):
-        Mobs.update(self, sprites)
+    def update(self, screen, sprites):
+        Mobs.update(self, screen, sprites)
         while self.rect.x - self.l[0] > 512 and self.rect.x + 512 < self.width:
             self.l[0] += 1
         while self.rect.x - self.l[0] < 512 and self.rect.x - 512 > 0:
@@ -133,7 +152,7 @@ class Player(Mobs):
                             i += 1
                             dx = x + dir[0] * 40 * j
                             dy = y + dir[1] * 40 * j
-                            exp = Explosion(b.screen, dx, dy, clock, self.l)
+                            exp = Explosion(dx, dy, clock, self.l)
                             ok = True
                             for sp in sprites:
                                 if collide_rect(exp, sp):
@@ -144,21 +163,8 @@ class Player(Mobs):
                             if ok:
                                 self.explosions.add(exp)
                     else:
-                        self.explosions.add(Explosion(b.screen, b.rect.x, b.rect.y, clock, self.l))
+                        self.explosions.add(Explosion(b.rect.x, b.rect.y, clock, self.l))
                 self.bombs_on_ground.remove((x, y))
                 b.kill()
             else:
-                b.update()
-
-
-class Bomb(Sprites):
-    def __init__(self, screen, x, y, strength, l):
-        Sprites.__init__(self, screen, 'Player\\bomb.png', x, y, l)
-        self.explosion_time = get_ticks() + 1500
-        self.strength = strength
-
-
-class Explosion(Sprites):
-    def __init__(self, screen, x, y, time, l):
-        Sprites.__init__(self, screen, 'Player\\explosion.png', x, y, l)
-        self.clear_time = time + 800
+                b.update(screen)

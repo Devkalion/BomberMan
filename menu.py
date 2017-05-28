@@ -23,8 +23,6 @@ class Menu:
 
     def load_images(self):
         self.logo = load('Resources\images\logo.png')
-        self.bg = Surface((1024, 768))
-        self.bg.fill(self.bg_color)
         self.menu = load('Resources\images\menu.bmp')
         self.menu.set_colorkey((81, 81, 81))
         self.man = load('Resources\images\man.png')
@@ -39,11 +37,12 @@ class Menu:
     def read_scores(self):
         f = open('Resources\Scores.txt', 'a+')
         f.seek(0)
-        self.tabl = sorted([(s.split(' ')[0], int(s.split(' ')[1])) for s in f.readlines()], key=lambda x: -x[1])
+        self.tabl = [(s.split('~')[0], int(s.split('~')[1])) for s in f.readlines()]
+        #self.tabl = sorted([(s.split('~')[0], int(s.split('~')[1])) for s in f.readlines()], key=lambda x: -x[1])
         f.close()
 
     def reload(self):
-        self.screen.blit(self.bg, (0, 0))
+        self.screen.fill(Color('#153515'))
         self.screen.blit(self.menu, (0, 520))
         self.screen.blit(self.logo, (30, 0))
         self.screen.blit(self.man, (540, 167))
@@ -91,7 +90,17 @@ class Menu:
         if idx != 3:
             delay(200)
         if idx == 0:
-            Play(self.screen, self.bg_color)
+            scores = Play(self.screen, self.bg_color).scores
+            if 'tabl' not in self.__dict__:
+                self.read_scores()
+            new_record = len(self.tabl) < 10
+            if not new_record:
+                for (name, score) in self.tabl:
+                    if score < scores:
+                        new_record = True
+                        break
+            if new_record:
+                self.update_scores(scores)
         elif idx == 1:
             self.instructions()
         elif idx == 2:
@@ -102,8 +111,67 @@ class Menu:
             exit()
         self.reload()
 
-    def scores(self):
-        self.screen.blit(self.bg, (0, 0))
+    def update_scores(self, score):
+        self.tabl.append(('_', score))
+        self.tabl = sorted(self.tabl, key=lambda x: -x[1])[0:(min(len(self.tabl), 10))]
+        i = self.tabl.index(('_', score))
+        self.print_scores()
+        s = ''
+        ok = True
+        filled = False
+        ex = False
+        while ok:
+            for event in get():
+                if event.type == KEYDOWN:
+                    if event.key == K_ESCAPE:
+                        if filled:
+                            ok = False
+                        else:
+                            filled = True
+                            self.tabl[i] = (s, self.tabl[i][1])
+                            self.print_scores()
+                    elif not filled:
+                        if (event.key == 32 or 'a' <= chr(event.key) <= 'z') and len(s) < 8:
+                            s1 = chr(event.key)
+                            s += s1
+                            if len(s) == 8:
+                                s1 = s
+                            else:
+                                s1 = s + '_'
+                            self.tabl[i] = (s1, self.tabl[i][1])
+                            self.print_scores()
+                        elif event.key == 8:
+                            s = s[0:len(s) - 1]
+                            self.tabl[i] = (s + '_', self.tabl[i][1])
+                            self.print_scores()
+                        elif event.key == 13:
+                            filled = True
+                            self.tabl[i] = (s, self.tabl[i][1])
+                            self.print_scores()
+                elif event.type == MOUSEBUTTONDOWN and event.button == 1:
+                    filled = True
+                    self.tabl[i] = (s, self.tabl[i][1])
+                    self.print_scores()
+                    [x, y] = event.pos
+                    if 30 <= x <= 146 and 700 <= y <= 746:
+                        ok = False
+                elif event.type == QUIT:
+                    ex = True
+                    if not filled:
+                        filled = True
+                        self.tabl[i] = (s, self.tabl[i][1])
+                        self.print_scores()
+                    ok = True
+        f = open('Resources\Scores.txt', 'w')
+        for k in self.tabl:
+            f.write('%s~%d\n' % k)
+        f.close()
+        if ex:
+            exit()
+
+
+    def print_scores(self):
+        self.screen.fill(Color('#153515'))
         self.screen.blit(self.logo, (30, 0))
         self.screen.blit(self.img1, (700, 300))
         self.screen.blit(self.back, (50, 690))
@@ -115,6 +183,9 @@ class Menu:
             label = font.render(str(s[1]), True, (255, 210, 0))
             self.screen.blit(label, (600, 240 + i * 50))
         update()
+
+    def scores(self):
+        self.print_scores()
         ok = True
         while ok:
             for event in get():
