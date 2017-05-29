@@ -5,6 +5,7 @@ from pygame.image import load
 from pygame.event import get
 from pygame.time import delay
 from pygame.font import Font
+from sys import exit
 from game import Play
 
 
@@ -87,23 +88,25 @@ class Menu:
         update()
 
     def pressed(self, idx, btn):
-        self.screen.blit(self.submenu, (20, 524))
+        self.screen.blit(self.submenu, (20, 490))
         self.screen.blit(self.explosion, (20, btn[1] + 4))
         update()
         if idx != 3:
             delay(200)
         if idx == 0:
-            scores = Play(self.screen, self.bg_color).scores
-            if 'tabl' not in self.__dict__:
-                self.read_scores()
-            new_record = len(self.tabl) < 10
-            if not new_record:
-                for (name, score) in self.tabl:
-                    if score < scores:
-                        new_record = True
-                        break
-            if new_record:
-                self.update_scores(scores)
+            a = Play(self.screen, self.bg_color)
+            scores = a.scores
+            if a.result != 0:
+                if 'tabl' not in self.__dict__:
+                    self.read_scores()
+                new_record = len(self.tabl) < 10
+                if not new_record:
+                    for (name, score) in self.tabl:
+                        if score < scores:
+                            new_record = True
+                            break
+                if new_record:
+                    self.update_scores(scores)
         elif idx == 1:
             self.instructions()
         elif idx == 2:
@@ -152,6 +155,8 @@ class Menu:
                     ex = True
                     filled = True
                     self.tabl[i] = (s, self.tabl[i][1])
+        if self.tabl[i][0] == '':
+            self.tabl[i] = ('____', self.tabl[i][1])
         f = open('Resources\Scores.txt', 'w')
         for k in self.tabl:
             f.write('%s~%d\n' % k)

@@ -10,7 +10,7 @@ from pygame.time import get_ticks, wait
 from pygame import Surface
 from Mobs import Sprites, Mobs, Player, Bonus
 from random import randint
-
+from sys import exit
 
 class Play:
     def __init__(self, screen, color):
@@ -65,32 +65,24 @@ class Play:
             for j in range(m):
                 (x, y) = j * 40, i * 40 + 50
                 if self.board[i][j] == '1':
-                    s = Sprites('Tiles\\3.png', x + 5, y + 5, self.begin, False)
-                    s.image = load('Resources\images\Sprites\Tiles\\1.png')
-                    s.rect.x -= 5
-                    s.rect.y -= 5
-                    self.sprites.add(s)
+                    self.sprites.add(Sprites('Tiles\\1.png', x, y, self.begin, False))
                 else:
                     self.grass.add(Sprites('Tiles\\0.png', x, y, self.begin))
                     if '2' <= self.board[i][j] <= '9':
-                        s = Sprites('Tiles\\3.png', x + 5, y + 5, self.begin)
-                        s.image = load('Resources\images\Sprites\Tiles\\2.png')
-                        s.rect.x -= 5
-                        s.rect.y -= 5
+                        s = Sprites('Tiles\\2.png', x, y, self.begin)
                         self.sprites.add(s)
                         if self.board[i][j] != '2':
-                            self.bonuses.add(Bonus(x, y, int(self.board[i][j]), self.begin))
+                            self.bonuses.add(Bonus(x, y, int(self.board[i][j]), self.begin, s))
                     elif self.board[i][j] == 'P':
                         self.start_pos = (x, y)
                         self.hero = Player(x, y, self.max_bombs, self.strength, self.begin, m * 40, n * 40)
                     elif self.board[i][j] != '0':
-                        self.mobs.add(Mobs(self.board[i][j], x, y, 1.0 + self.lvl * 0.5, randint(0, 3), self.begin))
+                        self.mobs.add(Mobs(self.board[i][j], x, y, 1.0 + (self.lvl - 1) * 0.5, randint(0, 3), self.begin))
         f.close()
         self.sprites_and_bombs = self.sprites.copy()
         self.start = get_ticks()
 
     def play(self):
-        self.time = get_ticks()
         set_repeat(1, 1)
         while not self.end:
             for event in get():
@@ -118,27 +110,22 @@ class Play:
                     self.hero.ismoved = False
             for m in self.mobs:
                 m.strategy()
-            self.time = max(get_ticks(), self.time)
             self.screen.fill(self.color)
             self.grass.update(self.screen)
             self.bonuses.update(self.screen)
             self.sprites.update(self.screen)
             self.hero.update(self.screen, self.sprites)
-            self.hero.explosions.update(self.screen)
             self.mobs.update(self.screen, self.sprites_and_bombs)
             self.show_info()
             update()
             killed = False
+            clock = get_ticks()
             for ex in self.hero.explosions:
-                if self.time + 700 < ex.clear_time:
+                if clock + 780 < ex.clear_time:
                     for m in self.mobs:
                         if collide_rect(m, ex):
                             self.scores += 15
                             m.kill()
-                    for sp in self.sprites:
-                        if sp.can and collide_rect(sp, ex):
-                            self.scores += 5
-                            sp.kill()
                     if collide_rect(self.hero, ex):
                         killed = True
             if killed or self.hero.collide(self.mobs):
@@ -147,7 +134,7 @@ class Play:
                     break
             else:
                 for bon in self.bonuses:
-                    if collide_rect(self.hero, bon):
+                    if bon.visible() and collide_rect(self.hero, bon):
                         if bon.type == 4:
                             self.lives += 1
                         elif bon.type == 5:
@@ -162,8 +149,6 @@ class Play:
                 self.lvl += 1
                 self.scores += 20
                 self.load_level()
-        if self.result == 0:
-            self.lose()
 
     def game_pause(self):
         set_visible(True)
@@ -179,6 +164,7 @@ class Play:
                     exit()
                 elif event.type == KEYDOWN:
                     if event.key == K_ESCAPE:
+                        n = 0
                         is_paused = False
                     elif event.key == K_UP:
                         n = 0
@@ -204,12 +190,10 @@ class Play:
             self.screen.blit(self.bomb, (360 - n * 25, 365 + n * 80))
             update()
         set_repeat(1, 1)
-        pause_time = get_ticks() - start_pause
-        self.hero.bombs.update(self.screen, pause_time)
-        self.hero.explosions.update(self.screen, pause_time)
-        self.start = self.start + pause_time
-        set_repeat(1, 1)
         set_visible(False)
+        pause_time = get_ticks() - start_pause
+        self.hero.update(self.screen, Group(), pause_time)
+        self.start = self.start + pause_time
 
     def death(self):
         self.scores -= 20
@@ -231,6 +215,7 @@ class Play:
         update()
 
     def lose(self):
+        self.result = 2
         self.end = True
         image = load('Resources\images\game over.jpg')
         self.show_info()
