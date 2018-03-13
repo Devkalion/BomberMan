@@ -14,6 +14,7 @@ class Menu:
         init()
         set_caption('BomberMan')
         set_icon(load('Resources\images\icon.png'))
+        self.fps = 60
         self.screen = set_mode((1024, 768))
         self.bg_color = Color('#153515')
         self.load_images()
@@ -54,7 +55,7 @@ class Menu:
         update()
 
     def cycle(self):
-        n = 4  # Количество строк в меню
+        n = len(self.btns)  # Количество строк в меню
         while True:
             for event in get():
                 if event.type == KEYDOWN:
@@ -94,7 +95,7 @@ class Menu:
         if idx != 3:
             delay(200)
         if idx == 0:
-            a = Play(self.screen, self.bg_color)
+            a = Play(self.screen, self.bg_color, self.fps)
             scores = a.scores
             if a.result != 0:
                 if 'tabl' not in self.__dict__:

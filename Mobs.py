@@ -156,7 +156,7 @@ class Mobs(Sprites):
 
 class Player(Mobs):
     def __init__(self, x, y, max_bombs, strength, l, width, height):
-        Mobs.__init__(self, 'Player\p', x, y, 1.5, 0, l)
+        Mobs.__init__(self, 'Player\p', x, y, 2, 0, l)
         self.width = width
         self.height = height
         self.max_bombs = max_bombs

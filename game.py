@@ -6,14 +6,15 @@ from pygame.sprite import Group, collide_rect, spritecollideany
 from pygame.display import update
 from pygame.image import load
 from pygame.font import Font
-from pygame.time import get_ticks, wait
+from pygame.time import get_ticks, Clock
 from pygame import Surface
 from Mobs import Sprites, Mobs, Player, Bonus
 from random import randint
 from sys import exit
 
 class Play:
-    def __init__(self, screen, color):
+    def __init__(self, screen, color, fps):
+        self.fps = fps
         self.end = False
         self.screen = screen
         self.color = color
@@ -53,11 +54,13 @@ class Play:
         try:
             f = open('Resources\level' + str(self.lvl) + '.txt', 'r')
         except:
-            self.win()
+            self.the_end(True)
             return
         self.screen.blit(load('Resources\images\loading.jpg'), (0, 0))
         update()
-        wait(500)
+        timer = Clock()
+        for i in range(25):
+            timer.tick(60)
         self.board = [s[0:(len(s) - 1)] for s in f.readlines()]
         n = len(self.board)
         m = len(self.board[0])
@@ -77,13 +80,14 @@ class Play:
                         self.start_pos = (x, y)
                         self.hero = Player(x, y, self.max_bombs, self.strength, self.begin, m * 40, n * 40)
                     elif self.board[i][j] != '0':
-                        self.mobs.add(Mobs(self.board[i][j], x, y, 1.0 + (self.lvl - 1) * 0.5, randint(0, 3), self.begin))
+                        self.mobs.add(Mobs(self.board[i][j], x, y, 1.0 + self.lvl * 0.5, randint(0, 3), self.begin))
         f.close()
         self.sprites_and_bombs = self.sprites.copy()
         self.start = get_ticks()
 
     def play(self):
         set_repeat(1, 1)
+        timer = Clock()
         while not self.end:
             for event in get():
                 if event.type == QUIT:
@@ -149,6 +153,7 @@ class Play:
                 self.lvl += 1
                 self.scores += 20
                 self.load_level()
+            timer.tick(self.fps)
 
     def game_pause(self):
         set_visible(True)
@@ -199,7 +204,7 @@ class Play:
         self.scores -= 20
         self.lives -= 1
         if self.lives == 0:
-            self.lose()
+            self.the_end()
             return
         self.begin[0] = 0
         self.begin[1] = 0
@@ -207,36 +212,34 @@ class Play:
         self.strength = 1
         self.hero = Player(self.start_pos[0], self.start_pos[1], 1, 1, self.begin
                            , len(self.board[0]) * 40, len(self.board) * 40)
-        wait(700)
+        timer = Clock()
+        for i in range(20):
+            timer.tick(50)
         while spritecollideany(self.hero, self.mobs):
             for m in self.mobs:
                 m.strategy()
                 m.update(self.screen, self.sprites)
         update()
 
-    def lose(self):
-        self.result = 2
+    def the_end(self, win=False):
         self.end = True
-        image = load('Resources\images\game over.jpg')
         self.show_info()
-        self.screen.blit(image, (0, 50))
+        if win:
+            self.result = 1
+            self.scores += 50
+            self.screen.blit(load('Resources\images\\victory.jpg'), (0, 50))
+        else:
+            self.result = 2
+            self.screen.blit(load('Resources\images\game over.jpg'), (0, 50))
         update()
-        wait(2000)
-
-    def win(self):
-        self.result = 1
-        self.scores += 50
-        self.end = True
-        image = load('Resources\images\\victory.jpg')
-        self.show_info()
-        self.screen.blit(image, (0, 50))
-        update()
-        wait(2000)
+        timer = Clock()
+        for i in range(60):
+            timer.tick(50)
 
     def update_timer(self):
         s = 180 - (get_ticks() - self.start) // 1000
-        if s == 0:
-            self.lose()
+        if s == 0 and not self.end:
+            self.the_end()
             return
         font = Font('Resources\\font.ttf', 30)
         s1 = ''
